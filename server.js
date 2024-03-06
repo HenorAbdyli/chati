@@ -11,6 +11,15 @@ const users = {};
 const messages = [];
 let messageId = 1;
 
+app.get("/", (req, res) => {
+  res.send("Express on Vercel");
+});
+
+
+app.listen(5000, () => {
+  console.log("Running on port 5000.");
+});
+
 app.use(express.static('public'));
 
 io.on('connection', (socket) => {
