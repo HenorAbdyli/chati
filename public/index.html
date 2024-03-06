@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>drdCHAT</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background-color: #1e1e1e;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .message {
+    color: #000;
+    clear: both;
+    line-height: 18px;
+    font-size: 15px;
+    padding: 8px;
+    margin: 8px 0;
+    max-width: 85%;
+    word-wrap: break-word;
+    z-index: -1;
+    background: #e1ffc7;
+    border-radius: 5px 0px 5px 5px;
+    float: left;
+      
+    }
+
+    input[type="text"], input[type="file"] {
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #333;
+      color: #fff;
+      font-size: 16px; 
+   touch-action: manipulation;  
+    }
+ 
+
+    button {
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+    h2{
+      font-weight: 100;
+      text-align: center;
+      color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>drdCHAT</h2>
+
+  </div>
+  <ul id="messages"></ul>
+  <form class="form" id="form" action="" enctype="multipart/form-data">
+    
+    <input  id="m" type="text" autocomplete="off" placeholder="Type a message" />
+    <input type="file" id="fileInput" accept="image/*" />
+    <button id="sendBtn">Send</button>
+  </form>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script>
+    const socket = io();
+
+    // Prompt for username on page load
+    const username = prompt("Please enter your username:");
+    socket.emit('new user', username);
+
+    $('#form').submit(function (e) {
+      e.preventDefault();
+
+      const message = $('#m').val();
+      const fileInput = $('#fileInput')[0];
+      const file = fileInput.files[0];
+
+      if (file) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const fileData = {
+            file: e.target.result.split(',')[1],
+            fileName: file.name,
+            username: $('#username').val(),
+          };
+
+          // Notify the server about the file upload
+          socket.emit('file upload', fileData);
+        };
+
+        reader.readAsDataURL(file);
+      } else if (message.trim() !== '') {
+        // Send only text message if no file is attached
+        socket.emit('chat message', { username, message });
+      }
+
+      $('#m').val('');
+      fileInput.value = '';  // Clear the file input
+      return false;
+    });
+
+    socket.on('chat message', function (msg) {
+      const messageElement = $('<li class="message">')
+        .text(`${msg.username}: ${msg.message}`);
+      $('#messages').append(messageElement);
+    });
+
+    socket.on('file uploaded', function (data) {
+      const imgElement = $('<img>').attr('src', data.filePath).css('max-width', '100%');
+      const messageElement = $('<li class="message">')
+        .text(`${data.username}: `)
+        .append(imgElement);
+      $('#messages').append(messageElement);
+    });
+
+    socket.on('user joined', function (username) {
+      $('#messages').append($('<li class="message">').text(`${username} joined the chat`));
+    });
+
+    socket.on('user left', function (username) {
+      $('#messages').append($('<li class="message">').text(`${username} left the chat`));
+    });
+  </script>
+</body>
+</html>
